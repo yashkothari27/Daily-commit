@@ -1,0 +1,30 @@
+name: Daily Commit
+on:
+  schedule:
+    - cron: '30 14 * * *'
+  workflow_dispatch:
+jobs:
+  commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.COMMIT_TOKEN }}
+      - name: Make daily commit
+        run: |
+          git config user.name  "yashkothari27"
+          git config user.email "93005260+yashkothari27@users.noreply.github.com"
+          TODAY=$(date +%Y-%m-%d)
+          NOW=$(date +"%Y-%m-%d %H:%M:%S UTC")
+          if grep -q "## $TODAY" activity.md 2>/dev/null; then
+            echo "- \`$NOW\` — Active" >> activity.md
+          else
+            printf "\n## %s\n- \`%s\` — Active\n" "$TODAY" "$NOW" >> activity.md
+          fi
+          echo "$NOW" > .heartbeat
+          git add .
+          if ! git diff --staged --quiet; then
+            MSGS=("Daily update ✨" "Keeping the streak alive 🔥" "Daily progress 🚀" "Consistency is key 🗝️" "Code every day 💻" "Never miss a day ⚡")
+            git commit -m "${MSGS[$RANDOM % ${#MSGS[@]}]} [$TODAY]"
+            git push
+          fi
