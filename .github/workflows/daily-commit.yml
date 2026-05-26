@@ -1,30 +1,95 @@
 name: Daily Commit
+
 on:
   schedule:
-    - cron: '30 14 * * *'
+    - cron: '30 14 * * *'  # 8:00 PM IST every day
   workflow_dispatch:
+
 jobs:
   commit:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.COMMIT_TOKEN }}
-      - name: Make daily commit
+
+      - name: Make random daily commits (1-4)
         run: |
           git config user.name  "yashkothari27"
           git config user.email "93005260+yashkothari27@users.noreply.github.com"
+
           TODAY=$(date +%Y-%m-%d)
-          NOW=$(date +"%Y-%m-%d %H:%M:%S UTC")
-          if grep -q "## $TODAY" activity.md 2>/dev/null; then
-            echo "- \`$NOW\` — Active" >> activity.md
-          else
-            printf "\n## %s\n- \`%s\` — Active\n" "$TODAY" "$NOW" >> activity.md
-          fi
-          echo "$NOW" > .heartbeat
-          git add .
-          if ! git diff --staged --quiet; then
-            MSGS=("Daily update ✨" "Keeping the streak alive 🔥" "Daily progress 🚀" "Consistency is key 🗝️" "Code every day 💻" "Never miss a day ⚡")
-            git commit -m "${MSGS[$RANDOM % ${#MSGS[@]}]} [$TODAY]"
-            git push
-          fi
+
+          # Realistic developer commit messages — no emojis, no "daily" patterns
+          MESSAGES=(
+            "fix: resolve edge case in input validation"
+            "feat: add error handling for API response"
+            "refactor: clean up unused variables"
+            "fix: minor bug in data processing logic"
+            "chore: update dependencies"
+            "docs: update README with setup steps"
+            "fix: correct typo in function name"
+            "feat: improve loading state handling"
+            "refactor: simplify conditional logic"
+            "chore: remove console logs"
+            "fix: handle null values in response"
+            "feat: add basic input sanitization"
+            "refactor: extract helper function"
+            "fix: off-by-one error in loop"
+            "chore: code cleanup"
+            "docs: add inline comments"
+            "fix: resolve merge conflict"
+            "feat: add fallback for missing data"
+            "refactor: improve variable naming"
+            "fix: correct API endpoint path"
+          )
+
+          # Random commit count: 1, 2, 3, or 4
+          NUM_COMMITS=$(( (RANDOM % 4) + 1 ))
+
+          # Spread commits across the day at realistic hours (IST)
+          # Morning: 9-11, Afternoon: 13-15, Evening: 17-19, Night: 20-22
+          ALL_HOURS=(9 10 11 13 14 15 17 18 19 20 21 22)
+          # Shuffle and pick NUM_COMMITS hours, sorted ascending
+          PICKED_HOURS=()
+          USED=()
+          while [ ${#PICKED_HOURS[@]} -lt $NUM_COMMITS ]; do
+            IDX=$(( RANDOM % ${#ALL_HOURS[@]} ))
+            H=${ALL_HOURS[$IDX]}
+            ALREADY=0
+            for U in "${USED[@]}"; do [ "$U" = "$H" ] && ALREADY=1; done
+            if [ $ALREADY -eq 0 ]; then
+              PICKED_HOURS+=($H)
+              USED+=($H)
+            fi
+          done
+          # Sort hours ascending
+          IFS=$'\n' PICKED_HOURS=($(sort -n <<<"${PICKED_HOURS[*]}")); unset IFS
+
+          for i in $(seq 0 $(( NUM_COMMITS - 1 ))); do
+            HOUR=${PICKED_HOURS[$i]}
+            MIN=$(( RANDOM % 58 + 1 ))
+            SEC=$(( RANDOM % 58 + 1 ))
+            COMMIT_TIME="${TODAY}T$(printf '%02d' $HOUR):$(printf '%02d' $MIN):$(printf '%02d' $SEC)"
+
+            # Update log with the simulated time
+            if grep -q "## $TODAY" activity.md 2>/dev/null; then
+              echo "- $COMMIT_TIME" >> activity.md
+            else
+              printf "\n## %s\n- %s\n" "$TODAY" "$COMMIT_TIME" >> activity.md
+            fi
+            echo "$COMMIT_TIME" > .heartbeat
+
+            git add .
+            if ! git diff --staged --quiet; then
+              MSG="${MESSAGES[$RANDOM % ${#MESSAGES[@]}]}"
+              GIT_AUTHOR_DATE="$COMMIT_TIME" GIT_COMMITTER_DATE="$COMMIT_TIME" \
+                git commit -m "$MSG"
+            fi
+
+            sleep 1
+          done
+
+          git push
