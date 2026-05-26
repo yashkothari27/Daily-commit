@@ -46,8 +46,20 @@ jobs:
             "fix: correct API endpoint path"
           )
 
-          # Random commit count: 1, 2, 3, or 4
-          NUM_COMMITS=$(( (RANDOM % 4) + 1 ))
+          # Natural weighted distribution:
+          # ~20% → skip today, ~30% → 1, ~25% → 2, ~15% → 3, ~10% → 4
+          ROLL=$(( RANDOM % 10 ))
+          if   [ $ROLL -lt 2 ]; then NUM_COMMITS=0   # skip
+          elif [ $ROLL -lt 5 ]; then NUM_COMMITS=1
+          elif [ $ROLL -lt 8 ]; then NUM_COMMITS=2
+          elif [ $ROLL -lt 9 ]; then NUM_COMMITS=3
+          else                        NUM_COMMITS=4
+          fi
+
+          if [ $NUM_COMMITS -eq 0 ]; then
+            echo "⏭️  Skipping today — rest day"
+            exit 0
+          fi
 
           # Spread commits across the day at realistic hours (IST)
           # Morning: 9-11, Afternoon: 13-15, Evening: 17-19, Night: 20-22
